@@ -65,7 +65,7 @@ client.on('messageCreate', async (msg) => {
           name: botData.username,
           iconURL: botData.avatar
         })
-        .setDescription(botData.shortdesc || "")
+        .setDescription(botData.shortdesc + `\n### [**View this bot on top.gg**](<${matches[0]}>)` || "")
         .addFields({ name: "Server Count", value: `${botData.server_count.toLocaleString()}`, inline: true })
         .addFields({ name: "Monthly Votes", value: `${botData.monthlyPoints.toLocaleString()}`, inline: true })
         .addFields({ name: "Total Votes", value: `${botData.points.toLocaleString()}`, inline: true })
