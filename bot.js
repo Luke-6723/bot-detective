@@ -106,9 +106,9 @@ client.on('interactionCreate', async (interaction) => {
     requestAuthorId
   ] = interaction.customId.split('-');
 
-  if (requestAuthorId === interaction.user.id) {
+  if (requestAuthorId !== interaction.user.id) {
     return interaction.reply({
-      content: "You can't close a request with your own suggestion.",
+      content: "You can't close a request that isn't yours.",
       ephemeral: true
     });
   }
