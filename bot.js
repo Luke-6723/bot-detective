@@ -83,9 +83,7 @@ client.on('messageCreate', async (msg) => {
     const { threads } = await msg.channel.threads?.fetch() 
     const userHasThread = threads.find(t => t.name.startsWith(msg.author.username))
   
-    if (userHasThread) {
-      return msg.delete()
-    };
+    if (userHasThread) return;
 
     const thread = await msg.startThread({ name: msg.author.username + " - Bot Suggestions" });
     await thread.send({
