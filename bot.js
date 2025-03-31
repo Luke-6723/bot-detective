@@ -31,6 +31,11 @@ client.on('messageCreate', async (msg) => {
   if (msg.author.bot) return;
   if (!msg.content) return; // Just incase only images are sent.
 
+  const { threads } = await msg.channel.threads.fetch() 
+  const userHasThread = threads.find(t => t.name.startsWith(msg.author.username))
+
+  if (userHasThread) return;
+
   if (isThread) {
     const requestAuthorId = (await msg.channel.fetchStarterMessage()).author.id;
     const topGgLinkRegex = /https:\/\/top\.gg\/bot\/(\d{1,32})/m;
@@ -79,7 +84,7 @@ client.on('messageCreate', async (msg) => {
       msg.reply({ content: `<@${requestAuthorId}> a new suggestion has come in:`, embeds: [embed], components: [row] });
     } else return;
   } else {
-    const thread = await msg.startThread({ name: "Bot Suggestions" });
+    const thread = await msg.startThread({ name: msg.author.username + " - Bot Suggestions" });
     await thread.send({
       embeds: [
         {
