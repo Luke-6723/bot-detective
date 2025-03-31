@@ -8,6 +8,8 @@ const discordToken = process.env.DISCORD_TOKEN;
 const detectiveChannelId = process.env.BOT_DETECTIVE_CHANNEL_ID;
 const topggAPIToken = process.env.TOP_GG_API_TOKEN;
 
+const embedColour = 0xff3366;
+
 if (!discordToken) throw Error('No bot token provided');
 if (!detectiveChannelId) throw Error('No detectiveChannelId provided');
 if (!topggAPIToken) throw Error('No topggAPIToken provided');
@@ -33,6 +35,8 @@ client.on('messageCreate', async (msg) => {
     const requestAuthorId = (await msg.channel.fetchStarterMessage()).author.id;
     const topGgLinkRegex = /https:\/\/top\.gg\/bot\/(\d{1,32})/m;
 
+    if (requestAuthorId === msg.author.id) return;
+
     const matches = msg.content.match(topGgLinkRegex);
 
     if (!matches) return;
@@ -46,12 +50,12 @@ client.on('messageCreate', async (msg) => {
       const row = new ActionRowBuilder();
 
       const acceptButton = new ButtonBuilder()
-        .setCustomId(`approve-${botId}-${originalChannelId}-${msg.author.id}`)
+        .setCustomId(`approve-${botId}-${originalChannelId}-${msg.author.id}-${requestAuthorId}`)
         .setStyle(ButtonStyle.Success)
         .setLabel('Accept');
 
       const declineButton = new ButtonBuilder()
-        .setCustomId(`decline-${botId}-${originalChannelId}-${msg.author.id}`)
+        .setCustomId(`decline-${botId}-${originalChannelId}-${msg.author.id}-${requestAuthorId}`)
         .setStyle(ButtonStyle.Danger)
         .setLabel('Decline');
 
@@ -60,7 +64,7 @@ client.on('messageCreate', async (msg) => {
 
 
       const embed = new EmbedBuilder()
-        .setColor(0xff3366) // Red border
+        .setColor(embedColour) // Red border
         .setAuthor({
           name: botData.username,
           iconURL: botData.avatar
@@ -72,13 +76,14 @@ client.on('messageCreate', async (msg) => {
         .addFields({ name: "Tags", value: botData.tags.splice(0, 3).join(', '), inline: false })
         .setTimestamp();
 
-      msg.reply({ content: `<@${requestAuthorId}> a new suggestion has come in:`, embeds: [embed], components: [row]});
+      msg.reply({ content: `<@${requestAuthorId}> a new suggestion has come in:`, embeds: [embed], components: [row] });
     } else return;
   } else {
-    const thread = await msg.startThread({ name: "Bot detective at work:" });
+    const thread = await msg.startThread({ name: "Bot Suggestions" });
     await thread.send({
       embeds: [
         {
+          color: embedColour,
           description: `# **Help this user find their desired bot!**
 ## Please send your recommendations here.
 
@@ -92,8 +97,61 @@ client.on('messageCreate', async (msg) => {
   }
 });
 
-client.on('interactionCreate', (interaction) => {
+client.on('interactionCreate', async (interaction) => {
+  const [
+    actionType,
+    suggestedBotId,
+    originalChannelId,
+    userSuggestingId,
+    requestAuthorId
+  ] = interaction.customId.split('-');
 
+  if (requestAuthorId === interaction.user.id) {
+    return interaction.reply({
+      content: "You can't close a request with your own suggestion.",
+      ephemeral: true
+    });
+  }
+
+  switch (actionType) {
+    case "approve": {
+      const botData = await topggApi.getBot(suggestedBotId).catch(_ => null); // Fetch bot from top.gg
+
+      if (!botData) return interaction.reply({
+        content: "Fetching bot data failed. Try again",
+        ephemeral: true
+      });
+
+      const embed = new EmbedBuilder()
+        .setColor(embedColour) // Red border
+        .setAuthor({
+          name: botData.username,
+          iconURL: botData.avatar
+        })
+        .setDescription(botData.shortdesc + `\n### [**View this bot on top.gg**](<https://top.gg/bot/${suggestedBotId}>)` || "")
+        .addFields({ name: "Server Count", value: `${botData.server_count.toLocaleString()}`, inline: true })
+        .addFields({ name: "Monthly Votes", value: `${botData.monthlyPoints.toLocaleString()}`, inline: true })
+        .addFields({ name: "Total Votes", value: `${botData.points.toLocaleString()}`, inline: true })
+        .addFields({ name: "Tags", value: botData.tags.splice(0, 3).join(', '), inline: false })
+        .setTimestamp();
+
+      await interaction.channel.send({
+        content: `**<@${requestAuthorId}>'s request has been fulfilled successfully by <@${userSuggestingId}>**`,
+        embeds: [embed]
+      });
+
+      await interaction.message.edit({ components: [] })
+
+      await interaction.channel.setLocked(true, "Request fullfilled")
+    } break;
+    case "decline": {
+      await interaction.message.edit({ content: "This suggestion was declined", components: [] })
+    } break;
+    default: {
+      await interaction.reply("Sorry either this interaction has expired or you do not have access to it.");
+    }
+  }
+  console.log(actionType, suggestedBotId, originalChannelId, userSuggestingId, requestAuthorId);
 });
 
 client.on('ready', () => {
