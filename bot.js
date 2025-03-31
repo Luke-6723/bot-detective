@@ -31,7 +31,7 @@ client.on('messageCreate', async (msg) => {
   if (msg.author.bot) return;
   if (!msg.content) return; // Just incase only images are sent.
 
-  const { threads } = await msg.channel.threads.fetch() 
+  const { threads } = await msg.channel.threads?.fetch() 
   const userHasThread = threads.find(t => t.name.startsWith(msg.author.username))
 
   if (userHasThread) return;
