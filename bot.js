@@ -7,6 +7,7 @@ config();
 const discordToken = process.env.DISCORD_TOKEN;
 const detectiveChannelId = process.env.BOT_DETECTIVE_CHANNEL_ID;
 const topggAPIToken = process.env.TOP_GG_API_TOKEN;
+const botDetectiveRoleId = process.env.BOT_DETECTIVE_ROLE_ID;
 
 const embedColour = 0xff3366;
 
@@ -144,6 +145,8 @@ client.on('interactionCreate', async (interaction) => {
         content: `**<@${requestAuthorId}>'s request has been fulfilled successfully by <@${userSuggestingId}>**`,
         embeds: [embed]
       });
+
+      (await interaction.guild.members.fetch(userSuggestingId)).roles.add(botDetectiveRoleId)
 
       await interaction.message.edit({ components: [] })
 
