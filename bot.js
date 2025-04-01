@@ -26,7 +26,7 @@ const client = new Client({
 
 client.on('messageCreate', async (msg) => {
   const isThread = msg.channel.isThread();
-  let originalChannelId = isThread ? (await msg.channel.fetchStarterMessage()).channelId : msg.channelId;
+  let originalChannelId = isThread ? (await msg.channel.fetchStarterMessage().catch(_ => {})).channelId : msg.channelId;
 
   if (originalChannelId !== detectiveChannelId) return;
   if (msg.author.bot) return;
