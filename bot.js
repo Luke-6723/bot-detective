@@ -123,26 +123,23 @@ client.on('interactionCreate', async (interaction) => {
     suggestingUserId
   ] = interaction.customId.split('-');
 
-  console.log(originalMessageId)
   const request = await database.request.findFirst({
     where: {
       messageId: originalMessageId
     }
   })
 
-  if (!request) return;
+  if (!request) {
+    return interaction.reply({
+      content: "Due to an update this interaction is now invalid."
+    })
+  }
 
   if (request.userId !== interaction.user.id) {
     return interaction.reply({
       content: "You can't close a request that isn't yours.",
       ephemeral: true
     });
-  }
-
-  if (!request) {
-    return interaction.reply({
-      content: "Due to an update this interaction is now invalid."
-    })
   }
 
   switch (actionType) {
