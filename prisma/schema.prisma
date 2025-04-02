@@ -14,9 +14,10 @@ datasource db {
 }
 
 model Request {
-  id String @id @default(uuid())
-  messageId String
+  id String @default(uuid())
+  messageId String @id
   request String
   userId String
+  fulfilledBy String?
   requestFulfilledWith String?
 }

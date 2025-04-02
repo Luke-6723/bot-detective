@@ -2,7 +2,7 @@
 const { Api } = require("@top-gg/sdk");
 const { Client, Message, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
 const { config } = require("dotenv");
-const { PrismaClient } = require('@prisma/client')
+const { PrismaClient } = require('@prisma/client');
 config();
 
 const discordToken = process.env.DISCORD_TOKEN;
@@ -10,7 +10,7 @@ const detectiveChannelId = process.env.BOT_DETECTIVE_CHANNEL_ID;
 const topggAPIToken = process.env.TOP_GG_API_TOKEN;
 const botDetectiveRoleId = process.env.BOT_DETECTIVE_ROLE_ID;
 
-const database = new PrismaClient()
+const database = new PrismaClient();
 
 const embedColour = 0xff3366;
 
@@ -29,17 +29,19 @@ const client = new Client({
 
 client.on('messageCreate', async (msg) => {
   const isThread = msg.channel.isThread();
-  let originalChannelId = isThread ? (await msg.channel.fetchStarterMessage().catch(_ => { return {} }))?.channelId : msg.channelId;
+  const requestAuthorId = isThread ? (await msg.channel.fetchStarterMessage().catch(_ => { return {}; }))?.author.id : msg.author.id;
+  let originalMessageId = isThread ? (await msg.channel.fetchStarterMessage().catch(_ => { return {}; }))?.id : msg.id;
+  let originalChannelId = isThread ? (await msg.channel.fetchStarterMessage().catch(_ => { return {}; }))?.channelId : msg.channelId;
 
   if (originalChannelId !== detectiveChannelId) return;
   if (msg.author.bot) return;
   if (!msg.content) return; // Just incase only images are sent.
-
+  
   if (isThread) {
-    const requestAuthorId = (await msg.channel.fetchStarterMessage()).author.id;
     const topGgLinkRegex = /https:\/\/top\.gg\/bot\/(\d{1,32})/m;
-
+    
     if (requestAuthorId === msg.author.id) return;
+    const suggestingUserId = msg.author.id
 
     const matches = msg.content.match(topGgLinkRegex);
 
@@ -54,12 +56,12 @@ client.on('messageCreate', async (msg) => {
       const row = new ActionRowBuilder();
 
       const acceptButton = new ButtonBuilder()
-        .setCustomId(`approve-${botId}-${originalChannelId}-${msg.author.id}-${requestAuthorId}`)
+        .setCustomId(`approve-${botId}-${originalMessageId}-${suggestingUserId}`)
         .setStyle(ButtonStyle.Success)
         .setLabel('Accept');
 
       const declineButton = new ButtonBuilder()
-        .setCustomId(`decline-${botId}-${originalChannelId}-${msg.author.id}-${requestAuthorId}`)
+        .setCustomId(`decline-${botId}-${originalMessageId}-${suggestingUserId}`)
         .setStyle(ButtonStyle.Danger)
         .setLabel('Decline');
 
@@ -71,7 +73,7 @@ client.on('messageCreate', async (msg) => {
         .setColor(embedColour) // Red border
         .setAuthor({
           name: botData.username,
-          iconURL: botData.avatar
+          iconURL: botData?.avatar || null
         })
         .setDescription(botData.shortdesc + `\n### [**View this bot on top.gg**](<${matches[0]}>)` || "")
         .addFields({ name: "Server Count", value: `${botData.server_count.toLocaleString()}`, inline: true })
@@ -89,11 +91,11 @@ client.on('messageCreate', async (msg) => {
 
     await database.request.create({
       data: {
-         messageId: msg.id,
-         request: msg.content,
-         userId: msg.author.id
+        messageId: originalMessageId,
+        request: msg.content,
+        userId: msg.author.id
       }
-    })
+    });
 
     const thread = await msg.startThread({ name: msg.author.username + " - Bot Suggestions" });
     await thread.send({
@@ -117,12 +119,20 @@ client.on('interactionCreate', async (interaction) => {
   const [
     actionType,
     suggestedBotId,
-    originalChannelId,
-    userSuggestingId,
-    requestAuthorId
+    originalMessageId,
+    suggestingUserId
   ] = interaction.customId.split('-');
 
-  if (requestAuthorId !== interaction.user.id) {
+  console.log(originalMessageId)
+  const request = await database.request.findFirst({
+    where: {
+      messageId: originalMessageId
+    }
+  })
+
+  if (!request) return;
+
+  if (request.userId !== interaction.user.id) {
     return interaction.reply({
       content: "You can't close a request that isn't yours.",
       ephemeral: true
@@ -131,15 +141,24 @@ client.on('interactionCreate', async (interaction) => {
 
   switch (actionType) {
     case "approve": {
-
-      await database.request.update({
-        data: {
-           requestFulfilledWith: suggestedBotId
-        },
+      console.log(originalMessageId)
+      const request = await database.request.findFirst({
         where: {
-          messageId: originalChannelId
+          messageId: originalMessageId
         }
       })
+
+      if (request) {
+        await database.request.update({
+          data: {
+            fulfilledBy: suggestingUserId,
+            requestFulfilledWith: suggestedBotId
+          },
+          where: {
+            messageId: originalMessageId
+          }
+        });
+      }
 
       const botData = await topggApi.getBot(suggestedBotId).catch(_ => null); // Fetch bot from top.gg
 
@@ -162,24 +181,23 @@ client.on('interactionCreate', async (interaction) => {
         .setTimestamp();
 
       await interaction.channel.send({
-        content: `**<@${requestAuthorId}>'s request has been fulfilled successfully by <@${userSuggestingId}>**`,
+        content: `**<@${request.userId}>'s request has been fulfilled successfully by <@${suggestingUserId}>**`,
         embeds: [embed]
       });
 
-      (await interaction.guild.members.fetch(userSuggestingId)).roles.add(botDetectiveRoleId)
+      (await interaction.guild.members.fetch(interaction)).roles.add(botDetectiveRoleId);
 
-      await interaction.message.edit({ components: [] })
+      await interaction.message.edit({ components: [] });
 
-      await interaction.channel.setLocked(true, "Request fullfilled")
+      await interaction.channel.setLocked(true, "Request fullfilled");
     } break;
     case "decline": {
-      await interaction.message.edit({ content: "This suggestion was declined", components: [] })
+      await interaction.message.edit({ content: "This suggestion was declined", components: [] });
     } break;
     default: {
       await interaction.reply("Sorry either this interaction has expired or you do not have access to it.");
     }
   }
-  console.log(actionType, suggestedBotId, originalChannelId, userSuggestingId, requestAuthorId);
 });
 
 client.on('ready', () => {
