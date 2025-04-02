@@ -139,30 +139,24 @@ client.on('interactionCreate', async (interaction) => {
     });
   }
 
+  if (!request) {
+    return interaction.reply({
+      content: "Due to an update this interaction is now invalid."
+    })
+  }
+
   switch (actionType) {
     case "approve": {
-      console.log(originalMessageId)
-      const request = await database.request.findFirst({
+
+      await database.request.update({
+        data: {
+          fulfilledBy: suggestingUserId,
+          requestFulfilledWith: suggestedBotId
+        },
         where: {
           messageId: originalMessageId
         }
-      })
-
-      if (request) {
-        await database.request.update({
-          data: {
-            fulfilledBy: suggestingUserId,
-            requestFulfilledWith: suggestedBotId
-          },
-          where: {
-            messageId: originalMessageId
-          }
-        });
-      } else {
-        return interaction.reply({
-          content: "Due to an update this interaction is now invalid."
-        })
-      }
+      });
 
       const botData = await topggApi.getBot(suggestedBotId).catch(_ => null); // Fetch bot from top.gg
 
