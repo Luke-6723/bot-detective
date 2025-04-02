@@ -185,7 +185,7 @@ client.on('interactionCreate', async (interaction) => {
         embeds: [embed]
       });
 
-      (await interaction.guild.members.fetch(interaction)).roles.add(botDetectiveRoleId);
+      (await interaction.guild.members.fetch(suggestingUserId)).roles.add(botDetectiveRoleId);
 
       await interaction.message.edit({ components: [] });
 
