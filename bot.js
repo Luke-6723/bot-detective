@@ -36,7 +36,7 @@ client.on('messageCreate', async (msg) => {
   if (originalChannelId !== detectiveChannelId) return;
   if (msg.author.bot) return;
   if (!msg.content) return; // Just incase only images are sent.
-  
+
   if (isThread) {
     const topGgLinkRegex = /https:\/\/top\.gg\/bot\/(\d{1,32})/m;
     
@@ -95,6 +95,8 @@ client.on('messageCreate', async (msg) => {
         request: msg.content,
         userId: msg.author.id
       }
+    }).catch(e => {
+      console.log(e)
     });
 
     const thread = await msg.startThread({ name: msg.author.username + " - Bot Suggestions" });
@@ -154,6 +156,8 @@ client.on('interactionCreate', async (interaction) => {
         where: {
           messageId: originalMessageId
         }
+      }).catch(e => {
+        console.log(e)
       });
 
       const botData = await topggApi.getBot(suggestedBotId).catch(_ => null); // Fetch bot from top.gg
