@@ -2,12 +2,15 @@
 const { Api } = require("@top-gg/sdk");
 const { Client, Message, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
 const { config } = require("dotenv");
+import { PrismaClient } from '@prisma/client'
 config();
 
 const discordToken = process.env.DISCORD_TOKEN;
 const detectiveChannelId = process.env.BOT_DETECTIVE_CHANNEL_ID;
 const topggAPIToken = process.env.TOP_GG_API_TOKEN;
 const botDetectiveRoleId = process.env.BOT_DETECTIVE_ROLE_ID;
+
+const database = new PrismaClient()
 
 const embedColour = 0xff3366;
 
@@ -84,6 +87,14 @@ client.on('messageCreate', async (msg) => {
     // const userHasThread = threads.find(t => t.name.startsWith(msg.author.username))
     // if (userHasThread) return;
 
+    await database.request.create({
+      data: {
+         messageId: msg.id,
+         request: msg.content,
+         userId: msg.author.id
+      }
+    })
+
     const thread = await msg.startThread({ name: msg.author.username + " - Bot Suggestions" });
     await thread.send({
       embeds: [
@@ -120,6 +131,16 @@ client.on('interactionCreate', async (interaction) => {
 
   switch (actionType) {
     case "approve": {
+
+      await database.request.update({
+        data: {
+           requestFulfilledWith: suggestedBotId
+        },
+        where: {
+          messageId: originalChannelId
+        }
+      })
+
       const botData = await topggApi.getBot(suggestedBotId).catch(_ => null); // Fetch bot from top.gg
 
       if (!botData) return interaction.reply({
