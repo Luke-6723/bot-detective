@@ -158,6 +158,10 @@ client.on('interactionCreate', async (interaction) => {
             messageId: originalMessageId
           }
         });
+      } else {
+        return interaction.reply({
+          content: "Due to an update this interaction is now invalid."
+        })
       }
 
       const botData = await topggApi.getBot(suggestedBotId).catch(_ => null); // Fetch bot from top.gg
