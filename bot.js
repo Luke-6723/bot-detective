@@ -131,7 +131,8 @@ client.on('interactionCreate', async (interaction) => {
 
   if (!request) {
     return interaction.reply({
-      content: "Due to an update this interaction is now invalid."
+      content: "Due to an update this interaction is now invalid.",
+      ephemeral: true
     })
   }
 
