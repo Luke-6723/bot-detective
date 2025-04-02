@@ -18,5 +18,5 @@ model Request {
   messageId String
   request String
   userId String
-  requestFulfilledWith String
+  requestFulfilledWith String?
 }
