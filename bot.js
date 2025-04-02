@@ -2,7 +2,7 @@
 const { Api } = require("@top-gg/sdk");
 const { Client, Message, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
 const { config } = require("dotenv");
-import { PrismaClient } from '@prisma/client'
+const { PrismaClient } = require('@prisma/client')
 config();
 
 const discordToken = process.env.DISCORD_TOKEN;
