@@ -80,10 +80,9 @@ client.on('messageCreate', async (msg) => {
       msg.reply({ content: `<@${requestAuthorId}> a new suggestion has come in:`, embeds: [embed], components: [row] });
     } else return;
   } else {
-    const { threads } = await msg.channel.threads?.fetch() 
-    const userHasThread = threads.find(t => t.name.startsWith(msg.author.username))
-  
-    if (userHasThread) return;
+    // const { threads } = await msg.channel.threads?.fetch() 
+    // const userHasThread = threads.find(t => t.name.startsWith(msg.author.username))
+    // if (userHasThread) return;
 
     const thread = await msg.startThread({ name: msg.author.username + " - Bot Suggestions" });
     await thread.send({
