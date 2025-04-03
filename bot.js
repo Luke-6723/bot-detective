@@ -38,7 +38,7 @@ client.on('messageCreate', async (msg) => {
   if (!msg.content) return; // Just incase only images are sent.
 
   if (isThread) {
-    const topGgLinkRegex = /https:\/\/top\.gg\/bot\/(\d{1,32})/m;
+    const topGgLinkRegex = /https:\/\/top\.gg(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/bot\/(\d{1,32})/m;
     
     if (requestAuthorId === msg.author.id) return;
     const suggestingUserId = msg.author.id
