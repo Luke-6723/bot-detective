@@ -125,9 +125,23 @@ client.on('interactionCreate', async (interaction) => {
     suggestingUserId
   ] = interaction.customId.split('-');
 
+  const message = interaction.channel.isThread() ? await interaction.channel.fetchStarterMessage() : null
+
+  if (message) {
+    await database.request.create({
+      data: {
+        messageId: message.id,
+        request: message.content,
+        userId: message.author.id
+      }
+    }).catch(e => {
+      console.log(e)
+    });
+  }
+
   const request = await database.request.findFirst({
     where: {
-      messageId: originalMessageId
+      messageId: message.content.id || originalMessageId
     }
   })
 
